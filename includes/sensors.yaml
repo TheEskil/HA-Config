@@ -1,0 +1,115 @@
+- platform: min_renovasjon
+  fraction_id:
+      - 1
+      - 2
+      - 3
+      - 6
+      - 12
+      - 19
+
+- platform: template
+  sensors:
+      next_garbage_pickup_date:
+          value_template: >
+              {% if states("sensor.rest_mat_og_plast_optibag") > states("sensor.papir") -%}
+                {% set next_date = strptime(states("sensor.papir"), '%Y-%m-%d %H:%M:%S') %}
+              {%- else -%}
+                {% set next_date = strptime(states("sensor.rest_mat_og_plast_optibag"), '%Y-%m-%d %H:%M:%S') %}
+              {%- endif %}
+            
+              {% set weekdays = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'] %}
+              {% set days_until_pickup = (as_timestamp(next_date | default(0)) | int - as_timestamp(now())) | timestamp_custom("%d") | int %}
+              {% if days_until_pickup > 1 -%}
+                {{ weekdays[next_date.strftime('%w') | int] }} {{ next_date.strftime('%d. %b') }}
+              {%- elif days_until_pickup == 1 -%}
+                I morgen
+              {%- elif days_until_pickup == 0 -%}
+                I dag
+              {%- endif %}
+          friendly_name: Neste søppeldag
+          
+      papir_pickup_date:
+          value_template: >
+              {% set next_date = strptime(states("sensor.papir"), '%Y-%m-%d %H:%M:%S') %}
+              
+              {% set weekdays = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'] %}
+              {% set days_until_pickup = (as_timestamp(next_date | default(0)) | int - as_timestamp(now())) | timestamp_custom("%d") | int %}
+              {% if days_until_pickup > 1 -%}
+                {{ weekdays[next_date.strftime('%w') | int] }} {{ next_date.strftime('%d. %b') }}
+              {%- elif days_until_pickup == 1 -%}
+                I morgen
+              {%- elif days_until_pickup == 0 -%}
+                I dag
+              {%- endif %}
+          friendly_name: Neste hentedag for papir
+          
+      restavfall_pickup_date:
+          value_template: >
+              {% set next_date = strptime(states("sensor.rest_mat_og_plast_optibag"), '%Y-%m-%d %H:%M:%S') %}
+              
+              {% set weekdays = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'] %}
+              {% set days_until_pickup = (as_timestamp(next_date | default(0)) | int - as_timestamp(now())) | timestamp_custom("%d") | int %}
+              {% if days_until_pickup > 1 -%}
+                {{ weekdays[next_date.strftime('%w') | int] }} {{ next_date.strftime('%d. %b') }}
+              {%- elif days_until_pickup == 1 -%}
+                I morgen
+              {%- elif days_until_pickup == 0 -%}
+                I dag
+              {%- endif %}
+          friendly_name: Neste hentedag for restavfall
+
+      next_garbage_pickup_type:
+          value_template: >
+              {% if states("sensor.rest_mat_og_plast_optibag") > states("sensor.papir") -%}
+                Papir
+              {%- else -%}
+                Restavfall
+              {%- endif %}
+          friendly_name: Søppeltype
+
+# Pollenvarsel
+- platform: rest
+  name: pollen_json
+  resource: https://pollenkontroll.no/api/pollen-count?country=no&location=171
+  scan_interval: 43200
+  value_template: 'OK'
+  json_attributes:
+    - "cities"
+- platform: template
+  sensors:
+    pollen_salix_today:
+      friendly_name: Pollen - Salix i dag
+      value_template: '{{ state_attr("sensor.pollen_json", "cities")[0].days[0].allergens[0].level_description }}'
+    pollen_salix_tomorrow:
+      friendly_name: Pollen - Salix i morgen
+      value_template: '{{ state_attr("sensor.pollen_json", "cities")[0].days[1].allergens[0].level_description }}'
+    pollen_bjork_today:
+      friendly_name: Pollen - Bjørk i dag
+      value_template: '{{ state_attr("sensor.pollen_json", "cities")[0].days[0].allergens[1].level_description }}'
+    pollen_bjork_tomorrow:
+      friendly_name: Pollen - Bjørk i morgen
+      value_template: '{{ state_attr("sensor.pollen_json", "cities")[0].days[1].allergens[1].level_description }}'
+    pollen_or_today:
+      friendly_name: Pollen - Or i dag
+      value_template: '{{ state_attr("sensor.pollen_json", "cities")[0].days[0].allergens[2].level_description }}'
+    pollen_or_tomorrow:
+      friendly_name: Pollen - Or i morgen
+      value_template: '{{ state_attr("sensor.pollen_json", "cities")[0].days[1].allergens[2].level_description }}'
+    pollen_hassel_today:
+      friendly_name: Pollen - Hassel i dag
+      value_template: '{{ state_attr("sensor.pollen_json", "cities")[0].days[0].allergens[3].level_description }}'
+    pollen_hassel_tomorrow:
+      friendly_name: Pollen - Hassel i morgen
+      value_template: '{{ state_attr("sensor.pollen_json", "cities")[0].days[1].allergens[3].level_description }}'
+    pollen_gress_today:
+      friendly_name: Pollen - Gress i dag
+      value_template: '{{ state_attr("sensor.pollen_json", "cities")[0].days[0].allergens[4].level_description }}'
+    pollen_gress_tomorrow:
+      friendly_name: Pollen - Gress i morgen
+      value_template: '{{ state_attr("sensor.pollen_json", "cities")[0].days[1].allergens[4].level_description }}'
+    pollen_burot_today:
+      friendly_name: Pollen - Burot i dag
+      value_template: '{{ state_attr("sensor.pollen_json", "cities")[0].days[0].allergens[5].level_description }}'
+    pollen_burot_tomorrow:
+      friendly_name: Pollen - Burot i morgen
+      value_template: '{{ state_attr("sensor.pollen_json", "cities")[0].days[1].allergens[5].level_description }}'

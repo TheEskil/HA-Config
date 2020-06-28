@@ -1,0 +1,28 @@
+esphome:
+  name: verandalys
+  platform: ESP8266
+  board: d1_mini
+
+wifi:
+  ssid: !secret ssid
+  password: !secret ssid_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: !secret esphome_verandalys_ssid
+    password: !secret esphome_verandalys_ssid_password
+
+captive_portal:
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+switch:
+  - platform: gpio
+    name: "Test Light"
+    pin: 7

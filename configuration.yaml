@@ -1,0 +1,106 @@
+
+# Configure a default setup of Home Assistant (frontend, api, etc)
+default_config:
+
+frontend:
+    themes: !include_dir_merge_named themes
+    
+lovelace:
+    mode: yaml
+
+# Uncomment this if you are using SSL/TLS, running in Docker container, etc.
+#http:
+#  base_url: 24123152.duckdns.org:8123
+#  ssl_certificate: /ssl/fullchain.pem
+#  ssl_key: /ssl/privkey.pem
+
+# Text to speech
+tts:
+  - platform: google_translate
+
+tibber:
+    access_token: !secret tibber_access_token
+
+device_tracker:
+    - platform: unifi_direct
+      host: 192.168.10.8
+      username: admin
+      password: !secret unifi_password
+
+group: !include groups.yaml
+automation: !include automations.yaml
+script: !include scripts.yaml
+input_boolean: !include includes/input_booleans.yaml
+sensor: !include includes/sensors.yaml
+scene: !include scenes.yaml
+
+discovery:
+  ignore:
+    - yeelight
+yeelight:
+  devices:
+    192.168.10.104:
+      name: Lekerompendel
+
+light:
+  - platform: group
+    name: stuelys
+    entities:
+      - light.tradfri_sofa
+      - light.tradfri_blomster
+      - light.tradfri_bokhylle
+  - platform: group
+    name: boder_og_vaskerom
+    entities:
+      - light.tradfri_vaskerom
+      - light.tradfri_bodgang
+      - light.tradfri_bod_liten
+      - light.tradfri_bod_stor
+  - platform: group
+    name: lekerom
+    entities:
+      - light.tradfri_lekerom
+      - light.lekerompendel
+      
+recorder:
+    purge_keep_days: 7
+    purge_interval: 1
+    
+min_renovasjon:
+  street_name: !secret min_renovasjon_street_name
+  house_no: !secret min_renovasjon_house_number
+  street_code: !secret min_renovasjon_street_code
+  county_id: !secret min_renovasjon_county_id
+  date_format: "None"
+
+volkswagencarnet:
+  username: !secret vwcarnet_username
+  password: !secret vwcarnet_password
+  spin: !secret vwcarnet_spin 
+  scan_interval: 
+    minutes: 2
+  name:
+    wvwzzzauzl8910287: 'e-Golf'
+  resources:
+    - position
+    - distance
+    #- climatisation
+    - window_heater
+    - charging
+    - battery_level
+    - service_inspection
+    - last_connected
+    - charging_time_left
+    - electric_range
+    - charge_max_ampere
+    - climatisation_target_temperature
+    - external_power
+    - parking_light
+    - climatisation_without_external_power
+    - door_locked
+    - trunk_locked
+    - request_in_progress
+
+zwave:
+  usb_path: /dev/serial/by-id/usb-0658_0200-if00
+  network_key: !secret zwave_network_key

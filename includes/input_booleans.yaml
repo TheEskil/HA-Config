@@ -1,0 +1,12 @@
+vacation_mode:
+    name: On Vacation
+    icon: mdi:airplane
+sleep_mode:
+    name: Sleep mode
+    icon: mdi:bed-king
+
+# Apps
+wake_up_light:
+    name: Start wake up light
+    initial: off
+    icon: mdi:weather-sunset-up
