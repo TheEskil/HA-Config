@@ -27,7 +27,7 @@ CONF_MUTABLE = 'mutable'
 CONF_SPIN = 'spin'
 CONF_SCANDINAVIAN_MILES = "scandinavian_miles"
 
-SIGNAL_STATE_UPDATED = f"{DOMAIN}.updated"
+SIGNAL_STATE_UPDATED = f'{DOMAIN}.updated'
 
 MIN_UPDATE_INTERVAL = timedelta(minutes=1)
 DEFAULT_UPDATE_INTERVAL = timedelta(minutes=5)
@@ -67,7 +67,12 @@ RESOURCES = [
     'door_locked',
     'trunk_locked',
     'request_in_progress',
-    'window_closed'
+    'windows_closed',
+    'trip_last_average_speed',
+    'trip_last_average_electric_consumption',
+    'trip_last_average_fuel_consumption',
+    'trip_last_duration',
+    'trip_last_length'
 ]
 
 CONFIG_SCHEMA = vol.Schema({
@@ -98,8 +103,8 @@ async def async_setup(hass, config):
     _LOGGER.debug("Creating connection to volkswagen carnet")
     connection = Connection(
         session=session,
-        username = config[DOMAIN].get(CONF_USERNAME),
-        password = config[DOMAIN].get(CONF_PASSWORD),
+        username=config[DOMAIN].get(CONF_USERNAME),
+        password=config[DOMAIN].get(CONF_PASSWORD),
     )
 
     interval = config[DOMAIN].get(CONF_SCAN_INTERVAL)
@@ -118,7 +123,7 @@ async def async_setup(hass, config):
     def discover_vehicle(vehicle):
         """Load relevant platforms."""
         data.vehicles.add(vehicle.vin)
-        data.entities[vehicle.vin] = []
+
 
         dashboard = vehicle.dashboard(
             mutable=config[DOMAIN][CONF_MUTABLE],
@@ -129,8 +134,8 @@ async def async_setup(hass, config):
         for instrument in (
                 instrument
                 for instrument in dashboard.instruments
-                if instrument.component in COMPONENTS and
-                is_enabled(instrument.slug_attr)):
+                if instrument.component in COMPONENTS and is_enabled(instrument.slug_attr)
+        ):
 
             data.instruments.add(instrument)
             hass.async_create_task(
@@ -138,7 +143,7 @@ async def async_setup(hass, config):
                     hass,
                     COMPONENTS[instrument.component],
                     DOMAIN,
-                    (vehicle.vin,instrument.component,instrument.attr),
+                    (vehicle.vin, instrument.component, instrument.attr),
                     config
                 )
             )
@@ -150,25 +155,22 @@ async def async_setup(hass, config):
             if not connection.logged_in:
                 await connection._login()
                 if not connection.logged_in:
-                    _LOGGER.warning('Could not login to volkswagen carnet, please check your credentials')
+                    _LOGGER.warning('Could not login to volkswagen carnet, please check your credentials and verify that the service is working')
                     return False
+
             # update vehicles
-            if not await connection.update(request_data = False):
-                _LOGGER.warning("Could not query update from volkswagen carnet")
+            if not await connection.update():
+                _LOGGER.warning('Could not query update from volkswagen carnet')
                 return False
-            else:
-                _LOGGER.debug("Updating data from volkswagen carnet")
 
-                for vehicle in connection.vehicles:
-                    if vehicle.vin not in data.vehicles:
-                        _LOGGER.info("Adding data for VIN: %s from carnet" % vehicle.vin.lower())
-                        discover_vehicle(vehicle)
+            _LOGGER.debug("Updating data from volkswagen carnet")
+            for vehicle in connection.vehicles:
+                if vehicle.vin not in data.vehicles:
+                    _LOGGER.info(f'Adding data for VIN: {vehicle.vin} from carnet')
+                    discover_vehicle(vehicle)
 
-                    # for entity in data.entities[vehicle.vin]:
-                    #     entity.schedule_update_ha_state()
-
-                async_dispatcher_send(hass, SIGNAL_STATE_UPDATED)
-                return True
+            async_dispatcher_send(hass, SIGNAL_STATE_UPDATED)
+            return True
 
         finally:
             async_track_point_in_utc_time(hass, update, utcnow() + interval)
@@ -184,7 +186,6 @@ class VolkswagenData:
         """Initialize the component state."""
         self.vehicles = set()
         self.instruments = set()
-        self.entities = {}
         self.config = config[DOMAIN]
         self.names = self.config.get(CONF_NAME)
 
@@ -220,8 +221,6 @@ class VolkswagenEntity(Entity):
         self.vin = vin
         self.component = component
         self.attribute = attribute
-
-        self.data.entities[self.vin].append(self)
 
     async def async_added_to_hass(self):
         """Register update dispatcher."""
@@ -279,6 +278,17 @@ class VolkswagenEntity(Entity):
             self.instrument.attributes,
             model=f"{self.vehicle.model}/{self.vehicle.model_year}"
         )
+
+    @property
+    def device_info(self):
+        """Return the device_info of the device."""
+        return {
+            "identifiers": {(DOMAIN, self.vin)},
+            "name": self._vehicle_name,
+            "manufacturer": "Volkswagen",
+            "model": self.vehicle.model,
+            "sw_version": self.vehicle.model_year,
+        }
 
     @property
     def unique_id(self) -> str:
