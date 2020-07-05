@@ -84,7 +84,7 @@ volkswagencarnet:
   resources:
     - position
     - distance
-    #- climatisation
+    - electric_climatisation
     - window_heater
     - charging
     - battery_level
@@ -100,6 +100,17 @@ volkswagencarnet:
     - door_locked
     - trunk_locked
     - request_in_progress
+
+telegram_bot:
+  - platform: polling
+    api_key: !secret telegram_bot_api_key
+    allowed_chat_ids:
+      - !secret telegram_chat_eskil
+
+notify:
+  - name: eskil_telegram
+    platform: telegram
+    chat_id: !secret telegram_chat_eskil
 
 zwave:
   usb_path: /dev/serial/by-id/usb-0658_0200-if00

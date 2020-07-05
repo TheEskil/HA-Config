@@ -1,1 +1,91 @@
-[]
+- alias: "Anfield Toggle Lights"
+  trigger:
+  - platform: event
+    event_type: ios.action_fired
+    event_data:
+      actionName: "Anfield toggle lights"
+  action:
+    - service: light.toggle
+      entity_id: light.fibaro_system_fgd212_dimmer_2_level
+
+- alias: "Bod Toggle Lights"
+  trigger:
+  - platform: event
+    event_type: ios.action_fired
+    event_data:
+      actionName: "Bod toggle lights"
+  action:
+    - service: light.toggle
+      entity_id: light.boder_og_vaskerom
+
+# e-Golf Automations
+
+- alias: "e-Golf Charging"
+  trigger:
+    platform: state
+    entity_id: switch.e_golf_charging
+    from: 'off'
+    to: 'on'
+  action:
+    - service: notify.eskil_telegram
+      data:
+        message: >-
+          e-Golf er satt på lading. Den er ferdig om {{ states("sensor.e_golf_charging_time_left") | float / 60 | round(2) }} timer
+
+- alias: "e-Golf Aborted Charging"
+  trigger:
+    platform: state
+    entity_id: switch.e_golf_charging
+    from: 'on'
+    to: 'off'
+  condition:
+  - condition: numeric_state
+    entity_id: switch.e_golf_battery_level
+    below: 99
+  action:
+    - service: notify.eskil_telegram
+      data:
+        message: >-
+          e-Golf har avbrutt lading. Rekkevidden er nå {{ states("sensor.e_golf_electric_range") | float / 10 | round(2) }} mil
+
+- alias: "e-Golf Fully Charged"
+  trigger:
+    platform: numeric_state
+    entity_id: switch.e_golf_battery_level
+    above: 99
+  action:
+    - service: notify.eskil_telegram
+      data:
+        message: >-
+          e-Golf er fullt oppladet. Rekkevidden er nå {{ states("sensor.e_golf_electric_range") | float / 10 | round(2) }} mil
+
+- alias: "e-Golf has returned home"
+  trigger:
+  - entity_id: device_tracker.e_golf
+    platform: state
+    to: 'home'
+    for: 00:10:00
+  action:
+    - service: notify.eskil_telegram
+      data:
+        message: >-
+          e-Golf er parkert. Rekkevidden er nå {{ states("sensor.e_golf_electric_range") | float / 10 | round(2) }} mil
+
+- alias: "e-Golf is at home and unlocked"
+  trigger:
+  - entity_id: device_tracker.e_golf
+    platform: state
+    to: 'home'
+    for: 00:10:00
+  condition:
+  - condition: state
+    entity_id: lock.e_golf_door_locked
+    state: unlocked
+  - condition: time
+    after: '07:00:00'
+    before: '21:00:00'
+  action:
+    - service: notify.eskil_telegram
+      data:
+        message: >-
+          e-Golf er ulåst
